@@ -9,13 +9,29 @@ class ProduitsList extends StatefulWidget {
 }
 
 class _ProduitsListState extends State<ProduitsList> {
-  List liste = [
-    ["1 produit", false],
-    ["2 produit", false],
-    ["3 produit", false],
-    ["4 produit", false],
-    ["5 produit", false]
+  List<String> produits = [
+    "1 produit",
+    "2 produit",
+    "3 produit",
+    "4 produit",
+    "5 produit"
   ];
+
+  Map<String, bool> selProduits = {};
+
+  @override
+  void initState() {
+    super.initState();
+    for (var produit in produits) {
+      selProduits[produit] = false;
+    }
+  }
+
+  void selectionProduit(String nom) {
+    setState(() {
+      selProduits[nom] = !selProduits[nom]!;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,15 +40,14 @@ class _ProduitsListState extends State<ProduitsList> {
         title: const Text("Produits"),
       ),
       body: ListView.builder(
-        itemCount: liste.length,
+        itemCount: produits.length,
         itemBuilder: (context, index) {
+          String produit = produits[index];
           return ProduitBox(
-            nomProduit: liste[index][0],
-            selProduit: liste[index][1],
-            onChanged: (bool? value) {
-              setState(() {
-                liste[index][1] = value ?? false;
-              });
+            nomProduit: produit,
+            selProduit: selProduits[produit]!,
+            onChanged: () {
+              selectionProduit(produit);
             },
           );
         },

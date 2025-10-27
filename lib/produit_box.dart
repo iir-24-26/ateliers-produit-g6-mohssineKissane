@@ -16,16 +16,18 @@ class ProduitBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 120,
-      child: Row(
-        children: [
-          Checkbox(
-            value: selProduit,
-            onChanged: (bool? value) {
-              onChanged(value);
-            },
-          ),
-          Text(nomProduit),
-        ],
+      child: Card(
+        child: Row(
+          children: [
+            Text(nomProduit),
+            Checkbox(
+              value: selProduit,
+              onChanged: (val) {
+                onChanged();
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
