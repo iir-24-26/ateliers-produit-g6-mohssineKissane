@@ -71,6 +71,13 @@ class _ProduitsListState extends State<ProduitsList> {
     );
   }
 
+  void supprimerProduit(String nom) {
+    setState(() {
+      produits.remove(nom);
+      selProduits.remove(nom);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -90,6 +97,9 @@ class _ProduitsListState extends State<ProduitsList> {
             selProduit: selProduits[produit]!,
             onChanged: () {
               selectionProduit(produit);
+            },
+            delProduit: () {
+              supprimerProduit(produit);
             },
           );
         },
