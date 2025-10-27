@@ -78,11 +78,74 @@ class _ProduitsListState extends State<ProduitsList> {
     });
   }
 
+  void supprimerSelection() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Confirmation"),
+          content: const Text("Voulez-vous vraiment supprimer les produits sélectionnés ?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text("Annuler"),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  // Créer une liste des produits à supprimer
+                  List<String> produitsASupprimer = [];
+                  selProduits.forEach((nom, selected) {
+                    if (selected) {
+                      produitsASupprimer.add(nom);
+                    }
+                  });
+                  
+                  // Supprimer tous les produits sélectionnés
+                  for (var nom in produitsASupprimer) {
+                    produits.remove(nom);
+                    selProduits.remove(nom);
+                  }
+                });
+                Navigator.pop(context);
+              },
+              child: const Text("Supprimer", style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Compter le nombre de produits sélectionnés
+    int nbSelectionnes = selProduits.values.where((selected) => selected).length;
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Produits"),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Produits"),
+            if (nbSelectionnes > 0)
+              TextButton.icon(
+                onPressed: supprimerSelection,
+                icon: const Icon(Icons.delete_sweep, size: 18, color: Colors.red),
+                label: Text(
+                  'Supprimer ($nbSelectionnes)',
+                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                ),
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(0, 0),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: ajoutProduit,
