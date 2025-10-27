@@ -9,6 +9,8 @@ class ProduitsList extends StatefulWidget {
 }
 
 class _ProduitsListState extends State<ProduitsList> {
+  final TextEditingController _textController = TextEditingController();
+  
   List<String> produits = [
     "1 produit",
     "2 produit",
@@ -33,11 +35,51 @@ class _ProduitsListState extends State<ProduitsList> {
     });
   }
 
+  void ajoutProduit() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Ajouter un produit"),
+          content: TextField(
+            controller: _textController,
+            decoration: const InputDecoration(
+              hintText: "Nom du produit",
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text("Annuler"),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  produits.add(_textController.text);
+                  selProduits[_textController.text] = false;
+                });
+                _textController.clear();
+                Navigator.pop(context);
+              },
+              child: const Text("Ajouter"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Produits"),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: ajoutProduit,
+        child: const Icon(Icons.add),
       ),
       body: ListView.builder(
         itemCount: produits.length,
