@@ -3,11 +3,10 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'models/produit.dart';
+import 'database/database_helper.dart';
 
 class AddProduitForm extends StatefulWidget {
-  final Function(Produit) onAddProduit;
-
-  const AddProduitForm({super.key, required this.onAddProduit});
+  const AddProduitForm({super.key});
 
   @override
   State<AddProduitForm> createState() => _AddProduitFormState();
@@ -15,9 +14,10 @@ class AddProduitForm extends StatefulWidget {
 
 class _AddProduitFormState extends State<AddProduitForm> {
   final _formKey = GlobalKey<FormState>();
-  final Produit _produit = Produit.empty();
+  String _libelle = '';
+  String _description = '';
+  double _prix = 0.0;
   String _pickedImagePath = '';
-  XFile? _pickedImageFile;
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -26,17 +26,26 @@ class _AddProduitFormState extends State<AddProduitForm> {
     if (image != null) {
       setState(() {
         _pickedImagePath = image.path;
-        _pickedImageFile = image;
-        _produit.photo = image.path;
       });
     }
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      widget.onAddProduit(_produit);
-      Navigator.pop(context);
+
+      final produit = Produit(
+        libelle: _libelle,
+        description: _description,
+        prix: _prix,
+        photo: _pickedImagePath,
+      );
+
+      await DatabaseHelper.instance.insertProduit(produit.toMap());
+
+      if (mounted) {
+        Navigator.pop(context);
+      }
     }
   }
 
@@ -62,7 +71,7 @@ class _AddProduitFormState extends State<AddProduitForm> {
                   return null;
                 },
                 onSaved: (value) {
-                  _produit.libelle = value!;
+                  _libelle = value!;
                 },
               ),
               const SizedBox(height: 16),
@@ -79,7 +88,7 @@ class _AddProduitFormState extends State<AddProduitForm> {
                   return null;
                 },
                 onSaved: (value) {
-                  _produit.description = value!;
+                  _description = value!;
                 },
               ),
               const SizedBox(height: 16),
@@ -100,7 +109,7 @@ class _AddProduitFormState extends State<AddProduitForm> {
                   return null;
                 },
                 onSaved: (value) {
-                  _produit.prix = double.parse(value!);
+                  _prix = double.parse(value!);
                 },
               ),
               const SizedBox(height: 16),
@@ -122,21 +131,20 @@ class _AddProduitFormState extends State<AddProduitForm> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child:
-                        kIsWeb
-                            ? Image.network(
-                              _pickedImagePath,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Center(
-                                  child: Icon(Icons.error, color: Colors.red),
-                                );
-                              },
-                            )
-                            : Image.file(
-                              File(_pickedImagePath),
-                              fit: BoxFit.cover,
-                            ),
+                    child: kIsWeb
+                        ? Image.network(
+                            _pickedImagePath,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Center(
+                                child: Icon(Icons.error, color: Colors.red),
+                              );
+                            },
+                          )
+                        : Image.file(
+                            File(_pickedImagePath),
+                            fit: BoxFit.cover,
+                          ),
                   ),
                 ),
               ],

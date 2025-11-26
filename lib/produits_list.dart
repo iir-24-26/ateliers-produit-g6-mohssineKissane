@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'models/produit.dart';
 import 'add_produit_form.dart';
 import 'produit_details.dart';
+import 'database/database_helper.dart';
 
 class ProduitsList extends StatefulWidget {
   const ProduitsList({super.key});
@@ -14,26 +15,36 @@ class ProduitsList extends StatefulWidget {
 
 class _ProduitsListState extends State<ProduitsList> {
   List<Produit> produits = [];
+  bool isLoading = true;
 
-  void saveProduit(Produit produit) {
+  @override
+  void initState() {
+    super.initState();
+    _loadProduits();
+  }
+
+  Future<void> _loadProduits() async {
+    setState(() => isLoading = true);
+    final data = await DatabaseHelper.instance.getAllProduits();
     setState(() {
-      produits.add(produit);
+      produits = data.map((map) => Produit.fromMap(map)).toList();
+      isLoading = false;
     });
   }
 
-  void supprimerProduit(int index) {
-    setState(() {
-      produits.removeAt(index);
-    });
+  Future<void> _deleteProduit(int id) async {
+    await DatabaseHelper.instance.deleteProduit(id);
+    _loadProduits();
   }
 
-  void ajoutProduit() {
-    Navigator.push(
+  void _ajoutProduit() async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AddProduitForm(onAddProduit: saveProduit),
+        builder: (context) => const AddProduitForm(),
       ),
     );
+    _loadProduits();
   }
 
   @override
@@ -41,59 +52,54 @@ class _ProduitsListState extends State<ProduitsList> {
     return Scaffold(
       appBar: AppBar(title: const Text("Produits")),
       floatingActionButton: FloatingActionButton(
-        onPressed: ajoutProduit,
+        onPressed: _ajoutProduit,
         child: const Icon(Icons.add),
       ),
-      body:
-          produits.isEmpty
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : produits.isEmpty
               ? const Center(
-                child: Text(
-                  'Aucun produit. Cliquez sur + pour en ajouter.',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-              )
+                  child: Text(
+                    'Aucun produit. Cliquez sur + pour en ajouter.',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                )
               : ListView.builder(
-                itemCount: produits.length,
-                itemBuilder: (context, index) {
-                  Produit produit = produits[index];
-                  return Card(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    child: ListTile(
-                      leading:
-                          produit.photo.isNotEmpty
-                              ? ClipRRect(
+                  itemCount: produits.length,
+                  itemBuilder: (context, index) {
+                    Produit produit = produits[index];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      child: ListTile(
+                        leading: produit.photo.isNotEmpty
+                            ? ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
-                                child:
-                                    kIsWeb
-                                        ? Image.network(
-                                          produit.photo,
-                                          width: 60,
-                                          height: 60,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (
-                                            context,
-                                            error,
-                                            stackTrace,
-                                          ) {
-                                            return Container(
-                                              width: 60,
-                                              height: 60,
-                                              color: Colors.grey[300],
-                                              child: Icon(Icons.error),
-                                            );
-                                          },
-                                        )
-                                        : Image.file(
-                                          File(produit.photo),
-                                          width: 60,
-                                          height: 60,
-                                          fit: BoxFit.cover,
-                                        ),
+                                child: kIsWeb
+                                    ? Image.network(
+                                        produit.photo,
+                                        width: 60,
+                                        height: 60,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return Container(
+                                            width: 60,
+                                            height: 60,
+                                            color: Colors.grey[300],
+                                            child: const Icon(Icons.error),
+                                          );
+                                        },
+                                      )
+                                    : Image.file(
+                                        File(produit.photo),
+                                        width: 60,
+                                        height: 60,
+                                        fit: BoxFit.cover,
+                                      ),
                               )
-                              : Container(
+                            : Container(
                                 width: 60,
                                 height: 60,
                                 decoration: BoxDecoration(
@@ -105,30 +111,32 @@ class _ProduitsListState extends State<ProduitsList> {
                                   color: Colors.grey,
                                 ),
                               ),
-                      title: Text(
-                        produit.libelle,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text('${produit.prix.toStringAsFixed(2)} €'),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () {
-                          supprimerProduit(index);
+                        title: Text(
+                          produit.libelle,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text('${produit.prix.toStringAsFixed(2)} €'),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () {
+                            if (produit.id != null) {
+                              _deleteProduit(produit.id!);
+                            }
+                          },
+                        ),
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ProduitDetails(produit: produit),
+                            ),
+                          );
+                          _loadProduits();
                         },
                       ),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => ProduitDetails(produit: produit),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
+                    );
+                  },
+                ),
     );
   }
 }
