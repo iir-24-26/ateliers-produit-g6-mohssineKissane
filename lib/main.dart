@@ -1,7 +1,16 @@
 import 'package:flutter/material.dart';
-import 'produits_list.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_ui_auth/firebase_ui_auth.dart';
+import 'firebase_options.dart';
+import 'login_ecran.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  
+  
   runApp(const MainApp());
 }
 
@@ -15,7 +24,7 @@ class MainApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         useMaterial3: true,
       ),
-      home: const ProduitsList(),
+      home: const LoginEcran(),
     );
   }
 }
