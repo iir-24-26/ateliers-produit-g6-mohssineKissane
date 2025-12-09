@@ -1,18 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
+
 import 'firebase_options.dart';
 import 'login_ecran.dart';
+import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+class UserRoleProvider extends ChangeNotifier {
+  String? _role;
+  String? get role => _role;
+  set role(String? value) {
+    _role = value;
+    notifyListeners();
+  }
+}
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  
-  
-  runApp(const MainApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => UserRoleProvider(),
+      child: const MainApp(),
+    ),
+  );
 }
+
 
 class MainApp extends StatelessWidget {
   const MainApp({super.key});
@@ -21,7 +38,7 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
       home: const LoginEcran(),

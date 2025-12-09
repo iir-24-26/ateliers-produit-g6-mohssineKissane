@@ -2,7 +2,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'models/produit.dart';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AddProduitForm extends StatefulWidget {
   final Function(Produit) onAddProduit;
@@ -32,11 +33,28 @@ class _AddProduitFormState extends State<AddProduitForm> {
     }
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      widget.onAddProduit(_produit);
-      Navigator.pop(context);
+      try {
+        await FirebaseFirestore.instance.collection('produits').add({
+          'libelle': _produit.libelle,
+          'description': _produit.description,
+          'prix': _produit.prix,
+          'photo': _produit.photo,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Produit ajouté avec succès!')),
+          );
+          Navigator.pop(context);
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors de l\'ajout: $e')),
+        );
+      }
     }
   }
 

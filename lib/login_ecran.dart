@@ -1,76 +1,66 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'produits_list.dart';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import 'admin_home_screen.dart';
+import 'user_home_screen.dart';
+
+
 class LoginEcran extends StatelessWidget {
   const LoginEcran({super.key});
+
+  Future<void> _ensureUserDoc(User user) async {
+    final userDoc = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final doc = await userDoc.get();
+    if (!doc.exists) {
+      await userDoc.set({
+        'email': user.email,
+        'role': 'user',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // If user is authenticated
         if (snapshot.hasData && snapshot.data != null) {
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text('Bienvenue'),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.logout),
-                  onPressed: () async {
-                    await FirebaseAuth.instance.signOut();
-                  },
-                  tooltip: 'Déconnexion',
-                ),
-              ],
-            ),
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.account_circle,
-                    size: 100,
-                    color: Colors.blue,
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Connecté en tant que:',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    snapshot.data!.email ?? 'Email non disponible',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ProduitsList(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.shopping_bag),
-                    label: const Text('Voir les produits'),
-                  ),
-                  const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      await FirebaseAuth.instance.signOut();
-                    },
-                    icon: const Icon(Icons.logout),
-                    label: const Text('Déconnexion'),
-                  ),
-                ],
-              ),
-            ),
+          final user = snapshot.data!;
+          return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+            future: (() async {
+              await _ensureUserDoc(user);
+              return FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+            })(),
+            builder: (context, userSnapshot) {
+              if (userSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+              if (userSnapshot.hasError || !userSnapshot.hasData || !userSnapshot.data!.exists) {
+                return Scaffold(
+                  body: Center(child: Text('Erreur de chargement du profil utilisateur.')),
+                );
+              }
+              final data = userSnapshot.data!.data()!;
+              final role = data['role'] ?? 'user';
+              // Store role in Provider
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                Provider.of<UserRoleProvider>(context, listen: false).role = role;
+              });
+              // Navigation logic (replace with your admin/user screens)
+              if (role == 'admin') {
+                return const AdminHomeScreen();
+              } else {
+                return const UserHomeScreen();
+              }
+            },
           );
         }
 
@@ -111,12 +101,8 @@ class LoginEcran extends StatelessWidget {
             );
           },
           actions: [
-            AuthStateChangeAction<SignedIn>((context, state) {
-              // User is signed in, StreamBuilder will handle the UI update
-            }),
-            AuthStateChangeAction<UserCreated>((context, state) {
-              // User account created, StreamBuilder will handle the UI update
-            }),
+            AuthStateChangeAction<SignedIn>((context, state) {}),
+            AuthStateChangeAction<UserCreated>((context, state) {}),
           ],
         );
       },
